@@ -28,20 +28,6 @@ export type InsertUser = typeof users.$inferInsert;
 /**
  * Tabela de clientes
  */
-export const clientes = mysqlTable("clientes", {
-  id: int("id").autoincrement().primaryKey(),
-  nome: varchar("nome", { length: 255 }).notNull(),
-  telefone: varchar("telefone", { length: 20 }),
-  email: varchar("email", { length: 255 }),
-  cpf: varchar("cpf", { length: 14 }),
-  endereco: text("endereco"),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-});
-
-export type Cliente = typeof clientes.$inferSelect;
-export type InsertCliente = typeof clientes.$inferInsert;
-
 /**
  * Tabela de festas
  */
@@ -114,3 +100,21 @@ export const custosFixos = mysqlTable("custosFixos", {
 
 export type CustoFixo = typeof custosFixos.$inferSelect;
 export type InsertCustoFixo = typeof custosFixos.$inferInsert;
+
+/**
+ * Tabela de agendamento de visitas
+ */
+export const visitas = mysqlTable("visitas", {
+  id: int("id").autoincrement().primaryKey(),
+  clienteNome: varchar("clienteNome", { length: 255 }).notNull(),
+  clienteTelefone: varchar("clienteTelefone", { length: 20 }).notNull(),
+  dataAgendamento: timestamp("dataAgendamento").notNull(),
+  tipoEvento: varchar("tipoEvento", { length: 100 }), // Ex: Aniversário 1 ano, Casamento
+  status: mysqlEnum("status", ["agendada", "realizada", "cancelada", "noshow"]).default("agendada").notNull(),
+  observacoes: text("observacoes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Visita = typeof visitas.$inferSelect;
+export type InsertVisita = typeof visitas.$inferInsert;

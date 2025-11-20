@@ -16,15 +16,25 @@ import RegistrarPagamento from "./pages/RegistrarPagamento";
 import Relatorios from "./pages/Relatorios";
 import AcompanhamentoPagamentos from "./pages/AcompanhamentoPagamentos";
 import ProjecaoFinanceira from "./pages/ProjecaoFinanceira";
+import LandingPage from "./pages/LandingPage";
+import Agendamento from "./pages/Agendamento";
+import AdminAgendamentos from "./pages/AdminAgendamentos";
+import CRM from "./pages/CRM";
 
 function Router() {
-  // make sure to consider if you need authentication for certain routes
   return (
     <Switch>
-      <Route path={"/"} component={Dashboard} />
+      {/* Rotas Públicas */}
+      <Route path="/" component={LandingPage} />
+      <Route path="/agendamento" component={Agendamento} />
+
+      {/* Área Administrativa */}
+      <Route path="/dashboard" component={Dashboard} />
+      <Route path="/admin/agendamentos" component={AdminAgendamentos} />
       <Route path="/festas" component={Festas} />
       <Route path="/festas/nova" component={NovaFesta} />
       <Route path="/clientes" component={Clientes} />
+      <Route path="/crm" component={CRM} />
       <Route path="/calendario" component={Calendario} />
       <Route path="/custos" component={Custos} />
       <Route path="/agenda" component={Agenda} />
@@ -33,25 +43,18 @@ function Router() {
       <Route path="/relatorios" component={Relatorios} />
       <Route path="/acompanhamento" component={AcompanhamentoPagamentos} />
       <Route path="/projecao" component={ProjecaoFinanceira} />
-      <Route path={"/404"} component={NotFound} />
+
+      <Route path="/404" component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />
     </Switch>
   );
 }
 
-// NOTE: About Theme
-// - First choose a default theme according to your design style (dark or light bg), than change color palette in index.css
-//   to keep consistent foreground/background color across components
-// - If you want to make theme switchable, pass `switchable` ThemeProvider and use `useTheme` hook
-
 function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider
-        defaultTheme="dark"
-        switchable
-      >
+      <ThemeProvider defaultTheme="dark" switchable>
         <TooltipProvider>
           <Toaster />
           <Router />
