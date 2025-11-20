@@ -119,3 +119,20 @@
 - [x] Confirmar que Código, Data de Fechamento, Data da Festa e Número de Convidados existem
 - [x] Verificar se os dados foram importados corretamente
 - [x] Atualizar interface para exibir todos os campos
+
+## Funcionalidade de Adicionar Nova Festa
+- [x] Criar página de formulário de nova festa
+- [x] Implementar seleção de cliente existente ou cadastro de novo cliente
+- [x] Adicionar validação de campos obrigatórios
+- [x] Implementar geração automática de código de contrato
+- [x] Criar procedure tRPC para cadastro de festa
+- [x] Adicionar feedback de sucesso/erro
+- [x] Redirecionar para lista de festas após cadastro
+- [x] Criar testes unitários para criação de festas
+
+## Correção de Páginas 404
+- [x] Identificar rotas que levam a 404
+- [x] Corrigir links quebrados na navegação
+- [x] Traduzir página 404 para português
+- [x] Ajustar tema escuro na página 404
+- [x] Testar todas as rotas do sistema

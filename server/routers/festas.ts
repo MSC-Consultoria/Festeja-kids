@@ -48,7 +48,6 @@ export const festasRouter = router({
   create: protectedProcedure
     .input(
       z.object({
-        codigo: z.string().min(1),
         clienteId: z.number(),
         dataFechamento: z.number(), // timestamp em ms
         dataFesta: z.number(), // timestamp em ms
@@ -60,14 +59,39 @@ export const festasRouter = router({
       })
     )
     .mutation(async ({ input }) => {
+      // Gerar código automático: MMDDYYXX (data fechamento + iniciais cliente)
+      const dataFechamento = new Date(input.dataFechamento);
+      const mes = String(dataFechamento.getMonth() + 1).padStart(2, '0');
+      const dia = String(dataFechamento.getDate()).padStart(2, '0');
+      const ano = String(dataFechamento.getFullYear()).slice(2);
+      
+      // Buscar cliente para pegar iniciais
+      const cliente = await db.getClienteById(input.clienteId);
+      if (!cliente) {
+        throw new Error("Cliente não encontrado");
+      }
+      
+      // Pegar primeiras duas letras do nome
+      const iniciais = cliente.nome.substring(0, 2).toUpperCase();
+      const codigoBase = `${mes}${dia}${ano}${iniciais}`;
+      
+      // Verificar se já existe e adicionar sufixo se necessário
+      let codigo = codigoBase;
+      let contador = 1;
+      while (await db.getFestaByCodigo(codigo)) {
+        codigo = `${codigoBase}${contador}`;
+        contador++;
+      }
+      
       const id = await db.createFesta({
+        codigo,
         ...input,
         dataFechamento: new Date(input.dataFechamento),
         dataFesta: new Date(input.dataFesta),
         valorPago: 0,
         status: "agendada",
       });
-      return { id };
+      return { id, codigo };
     }),
 
   update: protectedProcedure
