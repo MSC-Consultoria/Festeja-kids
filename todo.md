@@ -154,3 +154,13 @@
 - [x] Criar formulário de registro de pagamentos (valor, código contrato, forma de pagamento)
 - [ ] Implementar busca de festa por código de contrato
 - [ ] Vincular pagamentos às festas automaticamente
+
+## Recursos Visuais (Gráficos)
+- [x] Instalar biblioteca de gráficos (Recharts)
+- [x] Adicionar gráfico de evolução mensal de faturamento
+- [x] Adicionar gráfico de pizza de recebimentos vs a receber
+- [x] Adicionar gráfico de barras de festas por mês
+- [x] Criar aba Relatórios com dashboards visuais
+- [x] Implementar gráfico de análise trimestral
+- [x] Implementar gráfico de análise anual
+- [x] Adicionar gráfico de custos vs receita

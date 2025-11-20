@@ -13,6 +13,7 @@ import Custos from "./pages/Custos";
 import Agenda from "./pages/Agenda";
 import Financeiro from "./pages/Financeiro";
 import RegistrarPagamento from "./pages/RegistrarPagamento";
+import Relatorios from "./pages/Relatorios";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -27,6 +28,7 @@ function Router() {
       <Route path="/agenda" component={Agenda} />
       <Route path="/financeiro" component={Financeiro} />
       <Route path="/financeiro/registrar" component={RegistrarPagamento} />
+      <Route path="/relatorios" component={Relatorios} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

@@ -14,6 +14,23 @@ import {
 import { trpc } from "@/lib/trpc";
 import { DollarSign, Loader2, Plus, TrendingDown, TrendingUp, Wallet } from "lucide-react";
 import { useMemo } from "react";
+import {
+  LineChart,
+  Line,
+  PieChart,
+  Pie,
+  Cell,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
+
+const COLORS = ["#10b981", "#f59e0b", "#3b82f6", "#8b5cf6", "#ec4899", "#f97316"];
 
 export default function Financeiro() {
   const { user, loading: authLoading } = useAuth();
@@ -34,8 +51,46 @@ export default function Financeiro() {
       pagamentosPorMes[mes] = (pagamentosPorMes[mes] || 0) + p.valor;
     });
 
+    // Converter para array para gráficos
+    const dadosGraficoMensal = Object.entries(pagamentosPorMes)
+      .sort(([a], [b]) => {
+        const dateA = new Date(a.split(" de ").reverse().join(" "));
+        const dateB = new Date(b.split(" de ").reverse().join(" "));
+        return dateA.getTime() - dateB.getTime();
+      })
+      .map(([mes, valor]) => ({
+        mes: mes.split(" de ")[0].substring(0, 3), // Abreviar mês
+        valor: valor / 100,
+        valorFormatado: `R$ ${(valor / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+      }));
+
+    // Dados para gráfico de pizza
+    const dadosGraficoPizza = [
+      { name: "Recebido", value: totalRecebido / 100 },
+      { name: "A Receber", value: totalAReceber / 100 },
+    ];
+
     // Festas com saldo devedor
     const festasComSaldo = festas.filter(f => f.valorPago < f.valorTotal);
+    
+    // Festas por mês
+    const festasPorMes: Record<string, number> = {};
+    festas.forEach((f) => {
+      const mes = new Date(f.dataFesta).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+      festasPorMes[mes] = (festasPorMes[mes] || 0) + 1;
+    });
+
+    const dadosGraficoFestas = Object.entries(festasPorMes)
+      .sort(([a], [b]) => {
+        const dateA = new Date(a.split(" de ").reverse().join(" "));
+        const dateB = new Date(b.split(" de ").reverse().join(" "));
+        return dateA.getTime() - dateB.getTime();
+      })
+      .slice(-6) // Últimos 6 meses
+      .map(([mes, quantidade]) => ({
+        mes: mes.split(" de ")[0].substring(0, 3),
+        quantidade,
+      }));
     
     return {
       totalFaturamento,
@@ -44,6 +99,9 @@ export default function Financeiro() {
       pagamentosPorMes,
       festasComSaldo,
       percentualRecebido: totalFaturamento > 0 ? (totalRecebido / totalFaturamento) * 100 : 0,
+      dadosGraficoMensal,
+      dadosGraficoPizza,
+      dadosGraficoFestas,
     };
   }, [festas, pagamentos]);
 
@@ -136,35 +194,94 @@ export default function Financeiro() {
               </Card>
             </div>
 
-            {/* Recebimentos por Mês */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Recebimentos por Mês</CardTitle>
-                <CardDescription>Histórico de pagamentos recebidos</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Mês</TableHead>
-                      <TableHead className="text-right">Valor Recebido</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {Object.entries(estatisticas.pagamentosPorMes)
-                      .sort(([a], [b]) => b.localeCompare(a))
-                      .map(([mes, valor]) => (
-                        <TableRow key={mes}>
-                          <TableCell className="capitalize font-medium">{mes}</TableCell>
-                          <TableCell className="text-right font-semibold text-green-600">
-                            R$ {(valor / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
+            {/* Gráficos */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Gráfico de Linha - Evolução Mensal */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Evolução Mensal de Recebimentos</CardTitle>
+                  <CardDescription>Valores recebidos por mês</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <LineChart data={estatisticas.dadosGraficoMensal}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                      <XAxis dataKey="mes" stroke="#9ca3af" />
+                      <YAxis stroke="#9ca3af" />
+                      <Tooltip
+                        contentStyle={{ backgroundColor: "#1f2937", border: "1px solid #374151" }}
+                        labelStyle={{ color: "#f3f4f6" }}
+                        formatter={(value: number) => `R$ ${value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+                      />
+                      <Legend />
+                      <Line
+                        type="monotone"
+                        dataKey="valor"
+                        stroke="#10b981"
+                        strokeWidth={2}
+                        name="Valor Recebido"
+                        dot={{ fill: "#10b981", r: 4 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              {/* Gráfico de Pizza - Recebido vs A Receber */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Distribuição Financeira</CardTitle>
+                  <CardDescription>Proporção de valores recebidos e pendentes</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={estatisticas.dadosGraficoPizza}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                        outerRadius={100}
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        {estatisticas.dadosGraficoPizza.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={index === 0 ? "#10b981" : "#f59e0b"} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        contentStyle={{ backgroundColor: "#1f2937", border: "1px solid #374151" }}
+                        formatter={(value: number) => `R$ ${value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              {/* Gráfico de Barras - Festas por Mês */}
+              <Card className="lg:col-span-2">
+                <CardHeader>
+                  <CardTitle>Festas por Mês</CardTitle>
+                  <CardDescription>Quantidade de festas agendadas nos últimos 6 meses</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={estatisticas.dadosGraficoFestas}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                      <XAxis dataKey="mes" stroke="#9ca3af" />
+                      <YAxis stroke="#9ca3af" />
+                      <Tooltip
+                        contentStyle={{ backgroundColor: "#1f2937", border: "1px solid #374151" }}
+                        labelStyle={{ color: "#f3f4f6" }}
+                      />
+                      <Legend />
+                      <Bar dataKey="quantidade" fill="#3b82f6" name="Quantidade de Festas" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </div>
 
             {/* Festas com Saldo Devedor */}
             <Card>
