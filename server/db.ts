@@ -5,21 +5,24 @@ import { drizzle as drizzlePostgres } from "drizzle-orm/postgres-js";
 import mysql from "mysql2/promise";
 import Database from "better-sqlite3";
 import postgres from "postgres";
-import { 
-  InsertUser, 
-  users,
-  clientes,
-  InsertCliente,
-  festas,
-  InsertFesta,
-  pagamentos,
-  InsertPagamento,
-  custosVariaveis,
+import {
+  InsertCustoFixo,
   InsertCustoVariavel,
+  InsertCliente,
+  InsertFesta,
+  InsertPagamento,
+  InsertUser,
+  clientes,
   custosFixos,
-  InsertCustoFixo
-} from "../drizzle/schema";
-import { ENV } from './_core/env';
+  custosVariaveis,
+  festas,
+  isMySQL,
+  isPostgres,
+  isSQLite,
+  pagamentos,
+  users,
+} from "./db-schema";
+import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzleMysql> | ReturnType<typeof drizzleSqlite> | ReturnType<typeof drizzlePostgres> | null = null;
 
@@ -28,9 +31,7 @@ export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
       const dbUrl = process.env.DATABASE_URL;
-      const isSQLite = dbUrl.startsWith('file:');
-      const isPostgres = dbUrl.startsWith('postgres://') || dbUrl.startsWith('postgresql://');
-      
+
       if (isSQLite) {
         // SQLite connection
         const dbPath = dbUrl.replace('file:', '');
@@ -106,9 +107,19 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       updateSet.lastSignedIn = new Date();
     }
 
-    await db.insert(users).values(values).onDuplicateKeyUpdate({
-      set: updateSet,
-    });
+    if (isMySQL) {
+      await db.insert(users).values(values).onDuplicateKeyUpdate({
+        set: updateSet,
+      });
+    } else {
+      await db
+        .insert(users)
+        .values(values)
+        .onConflictDoUpdate({
+          target: users.openId,
+          set: updateSet,
+        });
+    }
   } catch (error) {
     console.error("[Database] Failed to upsert user:", error);
     throw error;
@@ -132,8 +143,13 @@ export async function getUserByOpenId(openId: string) {
 export async function createCliente(cliente: InsertCliente) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  const result = await db.insert(clientes).values(cliente);
-  return Number(result[0].insertId);
+  if (isMySQL) {
+    const result = await db.insert(clientes).values(cliente);
+    return Number(result[0].insertId);
+  }
+
+  const result = await db.insert(clientes).values(cliente).returning({ id: clientes.id });
+  return Number(result[0].id);
 }
 
 export async function getClienteById(id: number) {
@@ -181,8 +197,13 @@ export async function searchClientes(searchTerm: string) {
 export async function createFesta(festa: InsertFesta) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  const result = await db.insert(festas).values(festa);
-  return Number(result[0].insertId);
+  if (isMySQL) {
+    const result = await db.insert(festas).values(festa);
+    return Number(result[0].insertId);
+  }
+
+  const result = await db.insert(festas).values(festa).returning({ id: festas.id });
+  return Number(result[0].id);
 }
 
 export async function getFestaById(id: number) {
@@ -278,8 +299,16 @@ export async function deleteFesta(id: number) {
 export async function createPagamento(pagamento: InsertPagamento) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  const result = await db.insert(pagamentos).values(pagamento);
-  return Number(result[0].insertId);
+  if (isMySQL) {
+    const result = await db.insert(pagamentos).values(pagamento);
+    return Number(result[0].insertId);
+  }
+
+  const result = await db
+    .insert(pagamentos)
+    .values(pagamento)
+    .returning({ id: pagamentos.id });
+  return Number(result[0].id);
 }
 
 export async function getAllPagamentos() {
@@ -310,8 +339,16 @@ export async function deletePagamento(id: number) {
 export async function createCustoVariavel(custo: InsertCustoVariavel) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  const result = await db.insert(custosVariaveis).values(custo);
-  return Number(result[0].insertId);
+  if (isMySQL) {
+    const result = await db.insert(custosVariaveis).values(custo);
+    return Number(result[0].insertId);
+  }
+
+  const result = await db
+    .insert(custosVariaveis)
+    .values(custo)
+    .returning({ id: custosVariaveis.id });
+  return Number(result[0].id);
 }
 
 export async function getAllCustosVariaveis() {
@@ -345,8 +382,13 @@ export async function deleteCustoVariavel(id: number) {
 export async function createCustoFixo(custo: InsertCustoFixo) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  const result = await db.insert(custosFixos).values(custo);
-  return Number(result[0].insertId);
+  if (isMySQL) {
+    const result = await db.insert(custosFixos).values(custo);
+    return Number(result[0].insertId);
+  }
+
+  const result = await db.insert(custosFixos).values(custo).returning({ id: custosFixos.id });
+  return Number(result[0].id);
 }
 
 export async function getAllCustosFixos() {

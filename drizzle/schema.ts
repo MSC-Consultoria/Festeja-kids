@@ -28,6 +28,20 @@ export type InsertUser = typeof users.$inferInsert;
 /**
  * Tabela de clientes
  */
+export const clientes = mysqlTable("clientes", {
+  id: int("id").autoincrement().primaryKey(),
+  nome: varchar("nome", { length: 255 }).notNull(),
+  telefone: varchar("telefone", { length: 20 }).notNull(),
+  email: varchar("email", { length: 320 }),
+  endereco: text("endereco"),
+  observacoes: text("observacoes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Cliente = typeof clientes.$inferSelect;
+export type InsertCliente = typeof clientes.$inferInsert;
+
 /**
  * Tabela de festas
  */

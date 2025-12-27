@@ -304,6 +304,11 @@ NODE_ENV=production
 > ⚠️ **IMPORTANTE:** Nunca versione o arquivo `.env` com credenciais reais!
 > Use `.env.example` apenas com placeholders.
 
+Com a `DATABASE_URL` apontando para PostgreSQL, o projeto passa a usar automaticamente o
+schema `drizzle/schema-postgres.ts` e o driver `postgres-js` tanto nas migrações quanto
+no runtime (`server/db-schema.ts`). Para voltar a MySQL/SQLite, basta alterar a
+`DATABASE_URL` e o Drizzle selecionará o schema correspondente.
+
 #### 5️⃣ Converter Schema para PostgreSQL
 
 ⚠️ **ATENÇÃO:** O schema atual está configurado para MySQL. Para deploy no Supabase (PostgreSQL), você precisa:
