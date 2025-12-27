@@ -126,6 +126,8 @@ Será criado automaticamente ao executar `pnpm db:push`.
 ## 📖 Documentação
 
 - [SETUP_LOCAL.md](./SETUP_LOCAL.md) - Guia completo de configuração local
+- [Deploy Supabase](./SETUP_LOCAL.md#-deploy-para-supabase-produção) - Guia de deploy para produção na Supabase
+- [MIGRACAO_MYSQL_POSTGRES.md](./MIGRACAO_MYSQL_POSTGRES.md) - Guia de migração MySQL → PostgreSQL
 - [TIMELINE.md](./TIMELINE.md) - Histórico de desenvolvimento
 - [todo.md](./todo.md) - Tarefas pendentes
 - [Plano de Migração Festeja Kids 2.0 para Supabase](./Plano%20de%20Migração%20Festeja%20Kids%202.0%20para%20Supabase.md) - Etapas e premissas da migração
