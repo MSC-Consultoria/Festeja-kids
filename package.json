@@ -10,7 +10,9 @@
     "check": "tsc --noEmit",
     "format": "prettier --write .",
     "test": "vitest run",
-    "db:push": "drizzle-kit generate && drizzle-kit migrate"
+    "db:push": "drizzle-kit generate && drizzle-kit migrate",
+    "deploy:supabase": "node scripts/deploy-supabase.mjs",
+    "validate:supabase": "node scripts/validate-supabase.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.693.0",
@@ -63,6 +65,7 @@
     "nanoid": "^5.1.5",
     "next-themes": "^0.4.6",
     "openai": "^4.67.0",
+    "postgres": "^3.4.5",
     "react": "^19.1.1",
     "react-day-picker": "^9.11.1",
     "react-dom": "^19.1.1",
