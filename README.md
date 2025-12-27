@@ -100,9 +100,18 @@ DATABASE_URL=file:./festeja_kids.db
 # Autenticação
 JWT_SECRET=sua_chave_secreta_aqui
 
+# Supabase (opcional)
+SUPABASE_PROJECT_ID=
+SUPABASE_URL=
+SUPABASE_DATABASE_URL=
+SUPABASE_SERVICE_ROLE_KEY=
+SUPABASE_ANON_KEY=
+
 # Ambiente
 NODE_ENV=development
 ```
+
+> ⚠️ Não versione valores reais de Supabase (service role, URL de conexão ou tokens). Use apenas em `.env` local.
 
 ### Banco de Dados
 
