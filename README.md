@@ -100,9 +100,18 @@ DATABASE_URL=file:./festeja_kids.db
 # Autenticação
 JWT_SECRET=sua_chave_secreta_aqui
 
+# Supabase (opcional)
+SUPABASE_PROJECT_ID=
+SUPABASE_URL=
+SUPABASE_DATABASE_URL=
+SUPABASE_SERVICE_ROLE_KEY=
+SUPABASE_ANON_KEY=
+
 # Ambiente
 NODE_ENV=development
 ```
+
+> ⚠️ Não versione valores reais de Supabase (service role, URL de conexão ou tokens). Use apenas em `.env` local.
 
 ### Banco de Dados
 
@@ -117,8 +126,11 @@ Será criado automaticamente ao executar `pnpm db:push`.
 ## 📖 Documentação
 
 - [SETUP_LOCAL.md](./SETUP_LOCAL.md) - Guia completo de configuração local
+- [Deploy Supabase](./SETUP_LOCAL.md#-deploy-para-supabase-produção) - Guia de deploy para produção na Supabase
+- [MIGRACAO_MYSQL_POSTGRES.md](./MIGRACAO_MYSQL_POSTGRES.md) - Guia de migração MySQL → PostgreSQL
 - [TIMELINE.md](./TIMELINE.md) - Histórico de desenvolvimento
 - [todo.md](./todo.md) - Tarefas pendentes
+- [Plano de Migração Festeja Kids 2.0 para Supabase](./Plano%20de%20Migração%20Festeja%20Kids%202.0%20para%20Supabase.md) - Etapas e premissas da migração
 
 ## 🐛 Troubleshooting
 

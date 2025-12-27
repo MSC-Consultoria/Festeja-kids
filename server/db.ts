@@ -1,8 +1,10 @@
 import { eq } from "drizzle-orm";
 import { drizzle as drizzleMysql } from "drizzle-orm/mysql2";
 import { drizzle as drizzleSqlite } from "drizzle-orm/better-sqlite3";
+import { drizzle as drizzlePostgres } from "drizzle-orm/postgres-js";
 import mysql from "mysql2/promise";
 import Database from "better-sqlite3";
+import postgres from "postgres";
 import { 
   InsertUser, 
   users,
@@ -19,7 +21,7 @@ import {
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
-let _db: ReturnType<typeof drizzleMysql> | ReturnType<typeof drizzleSqlite> | null = null;
+let _db: ReturnType<typeof drizzleMysql> | ReturnType<typeof drizzleSqlite> | ReturnType<typeof drizzlePostgres> | null = null;
 
 // Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
@@ -27,6 +29,7 @@ export async function getDb() {
     try {
       const dbUrl = process.env.DATABASE_URL;
       const isSQLite = dbUrl.startsWith('file:');
+      const isPostgres = dbUrl.startsWith('postgres://') || dbUrl.startsWith('postgresql://');
       
       if (isSQLite) {
         // SQLite connection
@@ -34,6 +37,11 @@ export async function getDb() {
         const sqlite = new Database(dbPath);
         _db = drizzleSqlite(sqlite);
         console.log('[Database] Connected to SQLite:', dbPath);
+      } else if (isPostgres) {
+        // PostgreSQL/Supabase connection
+        const connection = postgres(dbUrl);
+        _db = drizzlePostgres(connection);
+        console.log('[Database] Connected to PostgreSQL/Supabase');
       } else {
         // MySQL connection
         const connection = await mysql.createConnection(dbUrl);
