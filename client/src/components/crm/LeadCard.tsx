@@ -32,7 +32,12 @@ export function LeadCard({ lead, onMove }: LeadCardProps) {
                     <h4 className="font-semibold text-slate-900 truncate pr-2">{lead.nome}</h4>
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-6 w-6 -mr-2">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 -mr-2"
+                                aria-label="Opções do lead"
+                            >
                                 <MoreHorizontal className="h-4 w-4" />
                             </Button>
                         </DropdownMenuTrigger>

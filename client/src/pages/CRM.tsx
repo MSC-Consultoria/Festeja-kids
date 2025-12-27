@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { KanbanBoard } from "@/components/crm/KanbanBoard";
 import { Button } from "@/components/ui/button";
-import { Plus, Filter } from "lucide-react";
+import { Plus, Filter, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import {
     Dialog,
@@ -39,15 +39,6 @@ export default function CRM() {
         },
     });
 
-    const createLeadMutation = trpc.clientes.create.useMutation({
-        onSuccess: () => {
-            toast.success("Lead criado com sucesso");
-            setIsDialogOpen(false);
-            utils.clientes.list.invalidate();
-            form.reset();
-        },
-    });
-
     const form = useForm<z.infer<typeof leadSchema>>({
         resolver: zodResolver(leadSchema),
         defaultValues: {
@@ -58,6 +49,17 @@ export default function CRM() {
             valorPotencial: "0",
         },
     });
+
+    const createLeadMutation = trpc.clientes.create.useMutation({
+        onSuccess: () => {
+            toast.success("Lead criado com sucesso");
+            setIsDialogOpen(false);
+            utils.clientes.list.invalidate();
+            form.reset();
+        },
+    });
+
+    const isSubmitting = createLeadMutation.isPending || form.formState.isSubmitting;
 
     const handleMoveLead = (id: number, status: string) => {
         updateStatusMutation.mutate({ id, statusFunil: status as any });
@@ -173,8 +175,19 @@ export default function CRM() {
                                     />
 
                                     <div className="flex justify-end pt-4">
-                                        <Button type="submit" className="bg-pink-600 hover:bg-pink-700">
-                                            Salvar Lead
+                                        <Button
+                                            type="submit"
+                                            className="bg-pink-600 hover:bg-pink-700"
+                                            disabled={isSubmitting}
+                                        >
+                                            {isSubmitting ? (
+                                                <>
+                                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                    Salvando...
+                                                </>
+                                            ) : (
+                                                "Salvar Lead"
+                                            )}
                                         </Button>
                                     </div>
                                 </form>
