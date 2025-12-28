@@ -14,10 +14,42 @@ import { trpc } from "@/lib/trpc";
 import { Plus, Eye, Pencil, Trash2, Search } from "lucide-react";
 import { Link } from "wouter";
 import { useState } from "react";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function Clientes() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [clientToDelete, setClientToDelete] = useState<{ id: number; nome: string } | null>(null);
+
   const { data: clientes, isLoading } = trpc.clientes.search.useQuery({ searchTerm });
+  const utils = trpc.useUtils();
+
+  const deleteMutation = trpc.clientes.delete.useMutation({
+    onSuccess: () => {
+      toast.success("Cliente excluído com sucesso");
+      utils.clientes.search.invalidate();
+      setClientToDelete(null);
+    },
+    onError: (error) => {
+      toast.error(error.message || "Erro ao excluir cliente");
+      setClientToDelete(null);
+    },
+  });
+
+  const confirmDelete = () => {
+    if (clientToDelete) {
+      deleteMutation.mutate({ id: clientToDelete.id });
+    }
+  };
 
   if (isLoading) {
     return (
@@ -94,10 +126,7 @@ export default function Clientes() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => {
-                              // TODO: Implementar exclusão
-                              alert("Funcionalidade em desenvolvimento");
-                            }}
+                            onClick={() => setClientToDelete({ id: cliente.id, nome: cliente.nome })}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -119,6 +148,28 @@ export default function Clientes() {
           </CardContent>
         </Card>
       </div>
+
+      <AlertDialog open={!!clientToDelete} onOpenChange={(open) => !open && setClientToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Cliente</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir o cliente <strong>{clientToDelete?.nome}</strong>?
+              <br />
+              Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   );
 }
