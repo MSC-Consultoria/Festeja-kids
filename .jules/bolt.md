@@ -1,0 +1,3 @@
+## 2024-05-23 - [Redundant N+1 Query in Festas List]
+**Learning:** The `Festas` page was making a separate N+1 like query (via `trpc.clientes.list`) and manual lookup for every festa to display the client name, even though the backend `getAllFestas` already performs a join and returns `clienteNome`. This is a common pattern to watch out for: check if the list endpoint already returns the necessary related data before fetching it separately.
+**Action:** Always inspect the return type and implementation of the list endpoint (in `server/db.ts` or router) before implementing client-side lookups. Use the joined data directly.

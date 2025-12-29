@@ -14,7 +14,7 @@ import { trpc } from "@/lib/trpc";
 import { formatCurrency, formatDate } from "@/const";
 import { Plus, Eye, Pencil, Trash2 } from "lucide-react";
 import { Link } from "wouter";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Select,
   SelectContent,
@@ -23,20 +23,43 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+// We define a local interface for the expected shape of the data returned by TRPC
+// This should ideally be inferred from the TRPC router, but for explicit typing in the map/filter
+// callbacks, we can define it here matching the server response.
+interface FestaResponse {
+  id: number;
+  codigo: string;
+  clienteId: number;
+  clienteNome: string | null;
+  dataFechamento: string | number | Date;
+  dataFesta: string | number | Date;
+  valorTotal: number;
+  valorPago: number;
+  numeroConvidados: number;
+  tema?: string | null;
+  horario?: string | null;
+  status: "agendada" | "realizada" | "cancelada";
+  observacoes?: string | null;
+  createdAt: string | number | Date;
+  updatedAt: string | number | Date;
+}
+
 export default function Festas() {
   const [statusFilter, setStatusFilter] = useState<string>("todas");
   const { data: festas, isLoading } = trpc.festas.list.useQuery();
-  const { data: clientes } = trpc.clientes.list.useQuery();
+  // Optimization: Removed redundant clientes query since clienteNome is included in festas
+  // const { data: clientes } = trpc.clientes.list.useQuery();
 
-  const festasFiltradas = festas?.filter((festa) => {
-    if (statusFilter === "todas") return true;
-    return festa.status === statusFilter;
-  });
+  // Optimization: Memoize filtered list to prevent re-calculation on every render
+  const festasFiltradas = useMemo(() => {
+    return festas?.filter((festa: any) => {
+      if (statusFilter === "todas") return true;
+      return festa.status === statusFilter;
+    });
+  }, [festas, statusFilter]);
 
-  const getClienteNome = (clienteId: number) => {
-    const cliente = clientes?.find((c) => c.id === clienteId);
-    return cliente?.nome || "Cliente não encontrado";
-  };
+  // Optimization: Removed getClienteNome function which was doing O(N*M) lookups
+  // Now using direct property access from the join result
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, "default" | "secondary" | "outline"> = {
@@ -114,10 +137,10 @@ export default function Festas() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {festasFiltradas.map((festa) => (
+                  {festasFiltradas.map((festa: any) => (
                     <TableRow key={festa.id}>
                       <TableCell className="font-medium">{festa.codigo}</TableCell>
-                      <TableCell>{getClienteNome(festa.clienteId)}</TableCell>
+                      <TableCell>{festa.clienteNome || "Cliente não encontrado"}</TableCell>
                       <TableCell className="text-muted-foreground">{formatDate(festa.dataFechamento)}</TableCell>
                       <TableCell>{formatDate(festa.dataFesta)}</TableCell>
                       <TableCell>{festa.numeroConvidados}</TableCell>
