@@ -26,17 +26,11 @@ import {
 export default function Festas() {
   const [statusFilter, setStatusFilter] = useState<string>("todas");
   const { data: festas, isLoading } = trpc.festas.list.useQuery();
-  const { data: clientes } = trpc.clientes.list.useQuery();
 
   const festasFiltradas = festas?.filter((festa) => {
     if (statusFilter === "todas") return true;
     return festa.status === statusFilter;
   });
-
-  const getClienteNome = (clienteId: number) => {
-    const cliente = clientes?.find((c) => c.id === clienteId);
-    return cliente?.nome || "Cliente não encontrado";
-  };
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, "default" | "secondary" | "outline"> = {
@@ -117,7 +111,7 @@ export default function Festas() {
                   {festasFiltradas.map((festa) => (
                     <TableRow key={festa.id}>
                       <TableCell className="font-medium">{festa.codigo}</TableCell>
-                      <TableCell>{getClienteNome(festa.clienteId)}</TableCell>
+                      <TableCell>{festa.clienteNome || "Cliente não encontrado"}</TableCell>
                       <TableCell className="text-muted-foreground">{formatDate(festa.dataFechamento)}</TableCell>
                       <TableCell>{formatDate(festa.dataFesta)}</TableCell>
                       <TableCell>{festa.numeroConvidados}</TableCell>
