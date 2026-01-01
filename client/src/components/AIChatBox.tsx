@@ -198,7 +198,12 @@ export function AIChatBox({
       style={{ height }}
     >
       {/* Messages Area */}
-      <div ref={scrollAreaRef} className="flex-1 overflow-hidden" aria-live="polite" aria-atomic="false">
+      <div
+        ref={scrollAreaRef}
+        className="flex-1 overflow-hidden"
+        aria-live="polite"
+        aria-atomic="false"
+      >
         {displayMessages.length === 0 ? (
           <div className="flex h-full flex-col p-4">
             <div className="flex flex-1 flex-col items-center justify-center gap-6 text-muted-foreground">
@@ -294,7 +299,10 @@ export function AIChatBox({
                     <Sparkles className="size-4 text-primary" />
                   </div>
                   <div className="rounded-lg bg-muted px-4 py-2.5">
-                    <Loader2 className="size-4 animate-spin text-muted-foreground" aria-label="AI is thinking" />
+                    <Loader2
+                      className="size-4 animate-spin text-muted-foreground"
+                      aria-label="AI is thinking"
+                    />
                   </div>
                 </div>
               )}
