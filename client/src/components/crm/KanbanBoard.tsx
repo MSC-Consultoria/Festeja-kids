@@ -1,6 +1,8 @@
 import React from "react";
+import { useMemo } from "react";
 import { LeadCard } from "./LeadCard";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { groupLeadsByStatus, formatCurrency } from "./kanban-utils";
 
 interface KanbanBoardProps {
     leads: any[];
@@ -16,8 +18,13 @@ const COLUMNS = [
 ];
 
 export function KanbanBoard({ leads, onMoveLead }: KanbanBoardProps) {
+    // Optimization: Group leads once instead of filtering for each column
+    const leadsByStatus = useMemo(() => {
+        return groupLeadsByStatus(leads, COLUMNS);
+    }, [leads]);
+
     const getLeadsByStatus = (status: string) => {
-        return leads.filter((lead) => lead.statusFunil === status);
+        return leadsByStatus[status] || [];
     };
 
     return (
@@ -37,7 +44,7 @@ export function KanbanBoard({ leads, onMoveLead }: KanbanBoardProps) {
                             </div>
                             {totalValue > 0 && (
                                 <div className="text-xs text-slate-500 font-medium">
-                                    Potencial: {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(totalValue / 100)}
+                                    Potencial: {formatCurrency(totalValue)}
                                 </div>
                             )}
                         </div>

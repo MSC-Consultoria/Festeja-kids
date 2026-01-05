@@ -11,6 +11,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { formatCurrency } from "./kanban-utils";
 
 interface LeadCardProps {
     lead: any;
@@ -18,13 +19,6 @@ interface LeadCardProps {
 }
 
 export function LeadCard({ lead, onMove }: LeadCardProps) {
-    const formatCurrency = (value: number) => {
-        return new Intl.NumberFormat("pt-BR", {
-            style: "currency",
-            currency: "BRL",
-        }).format(value / 100);
-    };
-
     return (
         <Card className="mb-3 cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow border-l-4 border-l-pink-500">
             <CardContent className="p-4">
