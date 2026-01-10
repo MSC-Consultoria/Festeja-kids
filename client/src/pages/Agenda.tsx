@@ -3,16 +3,32 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { trpc } from "@/lib/trpc";
+import { keepPreviousData } from "@tanstack/react-query";
 import { CalendarDays, Loader2 } from "lucide-react";
 import { useMemo, useState } from "react";
 
 export default function Agenda() {
   const { user, loading: authLoading } = useAuth();
-  const { data: festas, isLoading } = trpc.festas.list.useQuery();
   const [mesAtual, setMesAtual] = useState(() => {
     const hoje = new Date();
     return `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}`;
   });
+
+  const { startDate, endDate } = useMemo(() => {
+    const [ano, mes] = mesAtual.split("-").map(Number);
+    const start = new Date(ano, mes - 1, 1);
+    start.setHours(0, 0, 0, 0);
+
+    const end = new Date(ano, mes, 0);
+    end.setHours(23, 59, 59, 999);
+
+    return { startDate: start.getTime(), endDate: end.getTime() };
+  }, [mesAtual]);
+
+  const { data: festas, isLoading } = trpc.festas.byDateRange.useQuery(
+    { startDate, endDate },
+    { placeholderData: keepPreviousData }
+  );
 
   // Gerar dias do mês
   const diasDoMes = useMemo(() => {
@@ -34,7 +50,7 @@ export default function Agenda() {
     
     const grupos: Record<string, typeof festas> = {};
     
-    festas.forEach((festa) => {
+    festas.forEach((festa: any) => {
       const data = new Date(festa.dataFesta);
       const diaKey = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, "0")}-${String(data.getDate()).padStart(2, "0")}`;
       
@@ -105,7 +121,7 @@ export default function Agenda() {
                 </button>
               </div>
               <CardDescription>
-                {Object.values(festasPorDia).flat().filter(f => {
+                {Object.values(festasPorDia).flat().filter((f: any) => {
                   const data = new Date(f.dataFesta);
                   const [ano, mes] = mesAtual.split("-").map(Number);
                   return data.getFullYear() === ano && data.getMonth() === mes - 1;
@@ -139,7 +155,7 @@ export default function Agenda() {
                       
                       {festasNoDia.length > 0 && (
                         <div className="space-y-2 mt-3">
-                          {festasNoDia.map((festa) => (
+                          {festasNoDia.map((festa: any) => (
                             <div
                               key={festa.id}
                               className="border-l-4 border-primary pl-3 py-2 bg-background rounded-r"
