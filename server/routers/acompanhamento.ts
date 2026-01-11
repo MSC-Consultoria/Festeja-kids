@@ -1,7 +1,7 @@
 import { router, protectedProcedure } from "../_core/trpc";
 import { getAllFestas, getDb } from "../db";
 import { pagamentos } from "../../drizzle/schema";
-import { eq } from "drizzle-orm";
+import { inArray } from "drizzle-orm";
 
 const PARCELA_MINIMA = 50000; // R$ 500,00 em centavos
 const DIAS_ANTECEDENCIA_QUITACAO = 10;
@@ -17,69 +17,82 @@ export const acompanhamentoRouter = router({
     }
 
     const agora = new Date();
-    
-    const festasComStatus = await Promise.all(
-      festas.map(async (festa) => {
-        // Buscar pagamentos da festa
-        const pagamentosFesta = await database
+
+    // PERFORMANCE: Fetch all payments in one query instead of N+1
+    const festaIds = festas.map(f => f.id);
+    const allPagamentos = festaIds.length > 0
+      ? await database
           .select()
           .from(pagamentos)
-          .where(eq(pagamentos.festaId, festa.id));
+          .where(inArray(pagamentos.festaId, festaIds))
+      : [];
 
-        const totalPago = pagamentosFesta.reduce((sum, p) => sum + p.valor, 0);
-        const saldo = festa.valorTotal - totalPago;
-        const dataFesta = new Date(festa.dataFesta);
-        const dataLimiteQuitacao = new Date(dataFesta);
-        dataLimiteQuitacao.setDate(dataLimiteQuitacao.getDate() - DIAS_ANTECEDENCIA_QUITACAO);
+    // Group payments by festaId in memory
+    const pagamentosPorFesta = new Map<number, typeof allPagamentos>();
+    for (const p of allPagamentos) {
+      if (!pagamentosPorFesta.has(p.festaId)) {
+        pagamentosPorFesta.set(p.festaId, []);
+      }
+      pagamentosPorFesta.get(p.festaId)!.push(p);
+    }
 
-        // Calcular meses desde o fechamento
-        const dataFechamento = new Date(festa.dataFechamento);
-        const mesesDecorridos = Math.floor(
-          (agora.getTime() - dataFechamento.getTime()) / (1000 * 60 * 60 * 24 * 30)
-        );
+    const festasComStatus = festas.map((festa) => {
+      // Buscar pagamentos da festa (from memory)
+      const pagamentosFesta = pagamentosPorFesta.get(festa.id) || [];
 
-        // Calcular valor mínimo esperado (R$ 500/mês)
-        const valorMinimoEsperado = Math.max(0, mesesDecorridos * PARCELA_MINIMA);
-        
-        // Determinar status
-        let status: "quitado" | "em_dia" | "atrasado" | "alerta_quitacao" | "nao_quitado";
-        let diasParaEvento = Math.floor((dataFesta.getTime() - agora.getTime()) / (1000 * 60 * 60 * 24));
-        
-        if (saldo <= 0) {
-          status = "quitado";
-        } else if (agora >= dataLimiteQuitacao) {
-          status = "nao_quitado"; // Passou da data limite e não quitou
-        } else if (diasParaEvento <= DIAS_ANTECEDENCIA_QUITACAO) {
-          status = "alerta_quitacao"; // Faltam 10 dias ou menos
-        } else if (totalPago >= valorMinimoEsperado) {
-          status = "em_dia";
-        } else {
-          status = "atrasado";
-        }
+      const totalPago = pagamentosFesta.reduce((sum, p) => sum + p.valor, 0);
+      const saldo = festa.valorTotal - totalPago;
+      const dataFesta = new Date(festa.dataFesta);
+      const dataLimiteQuitacao = new Date(dataFesta);
+      dataLimiteQuitacao.setDate(dataLimiteQuitacao.getDate() - DIAS_ANTECEDENCIA_QUITACAO);
 
-        // Calcular próxima parcela esperada
-        const proximaParcelaData = new Date(dataFechamento);
-        proximaParcelaData.setMonth(proximaParcelaData.getMonth() + mesesDecorridos + 1);
+      // Calcular meses desde o fechamento
+      const dataFechamento = new Date(festa.dataFechamento);
+      const mesesDecorridos = Math.floor(
+        (agora.getTime() - dataFechamento.getTime()) / (1000 * 60 * 60 * 24 * 30)
+      );
 
-        return {
-          ...festa,
-          totalPago,
-          saldo,
-          status,
-          valorMinimoEsperado,
-          mesesDecorridos,
-          diasParaEvento,
-          dataLimiteQuitacao: dataLimiteQuitacao.toISOString(),
-          proximaParcelaData: proximaParcelaData.toISOString(),
-          pagamentos: pagamentosFesta.map(p => ({
-            id: p.id,
-            valor: p.valor,
-            dataPagamento: p.dataPagamento,
-            metodoPagamento: p.metodoPagamento,
-          })),
-        };
-      })
-    );
+      // Calcular valor mínimo esperado (R$ 500/mês)
+      const valorMinimoEsperado = Math.max(0, mesesDecorridos * PARCELA_MINIMA);
+
+      // Determinar status
+      let status: "quitado" | "em_dia" | "atrasado" | "alerta_quitacao" | "nao_quitado";
+      let diasParaEvento = Math.floor((dataFesta.getTime() - agora.getTime()) / (1000 * 60 * 60 * 24));
+
+      if (saldo <= 0) {
+        status = "quitado";
+      } else if (agora >= dataLimiteQuitacao) {
+        status = "nao_quitado"; // Passou da data limite e não quitou
+      } else if (diasParaEvento <= DIAS_ANTECEDENCIA_QUITACAO) {
+        status = "alerta_quitacao"; // Faltam 10 dias ou menos
+      } else if (totalPago >= valorMinimoEsperado) {
+        status = "em_dia";
+      } else {
+        status = "atrasado";
+      }
+
+      // Calcular próxima parcela esperada
+      const proximaParcelaData = new Date(dataFechamento);
+      proximaParcelaData.setMonth(proximaParcelaData.getMonth() + mesesDecorridos + 1);
+
+      return {
+        ...festa,
+        totalPago,
+        saldo,
+        status,
+        valorMinimoEsperado,
+        mesesDecorridos,
+        diasParaEvento,
+        dataLimiteQuitacao: dataLimiteQuitacao.toISOString(),
+        proximaParcelaData: proximaParcelaData.toISOString(),
+        pagamentos: pagamentosFesta.map(p => ({
+          id: p.id,
+          valor: p.valor,
+          dataPagamento: p.dataPagamento,
+          metodoPagamento: p.metodoPagamento,
+        })),
+      };
+    });
 
     return festasComStatus;
   }),
@@ -114,12 +127,27 @@ export const acompanhamentoRouter = router({
       };
     }
 
+    // PERFORMANCE: Fetch all payments in one query instead of N+1
+    const festaIds = festas.map(f => f.id);
+    const allPagamentos = festaIds.length > 0
+      ? await database
+          .select()
+          .from(pagamentos)
+          .where(inArray(pagamentos.festaId, festaIds))
+      : [];
+
+    // Group payments by festaId in memory
+    const pagamentosPorFesta = new Map<number, typeof allPagamentos>();
+    for (const p of allPagamentos) {
+      if (!pagamentosPorFesta.has(p.festaId)) {
+        pagamentosPorFesta.set(p.festaId, []);
+      }
+      pagamentosPorFesta.get(p.festaId)!.push(p);
+    }
+
     // Processar cada festa
     for (const festa of festas) {
-      const pagamentosFesta = await database
-        .select()
-        .from(pagamentos)
-        .where(eq(pagamentos.festaId, festa.id));
+      const pagamentosFesta = pagamentosPorFesta.get(festa.id) || [];
 
       const totalPago = pagamentosFesta.reduce((sum, p) => sum + p.valor, 0);
       const saldo = festa.valorTotal - totalPago;
