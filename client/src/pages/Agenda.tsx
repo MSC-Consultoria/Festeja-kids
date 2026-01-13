@@ -8,11 +8,22 @@ import { useMemo, useState } from "react";
 
 export default function Agenda() {
   const { user, loading: authLoading } = useAuth();
-  const { data: festas, isLoading } = trpc.festas.list.useQuery();
   const [mesAtual, setMesAtual] = useState(() => {
     const hoje = new Date();
     return `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}`;
   });
+
+  const { startDate, endDate } = useMemo(() => {
+    const [ano, mes] = mesAtual.split("-").map(Number);
+    const start = new Date(ano, mes - 1, 1);
+    const end = new Date(ano, mes, 0, 23, 59, 59, 999);
+    return { startDate: start.getTime(), endDate: end.getTime() };
+  }, [mesAtual]);
+
+  const { data: festas, isLoading } = trpc.festas.byDateRange.useQuery(
+    { startDate, endDate },
+    { placeholderData: keepPreviousData }
+  );
 
   // Gerar dias do mês
   const diasDoMes = useMemo(() => {
