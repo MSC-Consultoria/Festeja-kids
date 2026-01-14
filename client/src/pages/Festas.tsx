@@ -23,6 +23,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Spinner } from "@/components/ui/spinner";
 
 export default function Festas() {
   const [statusFilter, setStatusFilter] = useState<string>("todas");
@@ -148,12 +154,20 @@ export default function Festas() {
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
                           <Link href={`/festas/${festa.id}`}>
-                            <Button variant="ghost" size="icon">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              aria-label="Ver detalhes da festa"
+                            >
                               <Eye className="h-4 w-4" />
                             </Button>
                           </Link>
                           <Link href={`/festas/${festa.id}/editar`}>
-                            <Button variant="ghost" size="icon">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              aria-label="Editar festa"
+                            >
                               <Pencil className="h-4 w-4" />
                             </Button>
                           </Link>
@@ -170,6 +184,7 @@ export default function Festas() {
                               }
                             }}
                             disabled={deleteMutation.isPending}
+                            aria-label="Excluir festa"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
