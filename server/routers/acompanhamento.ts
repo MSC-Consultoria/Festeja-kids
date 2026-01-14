@@ -1,7 +1,7 @@
 import { router, protectedProcedure } from "../_core/trpc";
 import { getAllFestas, getDb } from "../db";
 import { pagamentos } from "../../drizzle/schema";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 
 const PARCELA_MINIMA = 50000; // R$ 500,00 em centavos
 const DIAS_ANTECEDENCIA_QUITACAO = 10;
@@ -18,13 +18,27 @@ export const acompanhamentoRouter = router({
 
     const agora = new Date();
     
-    const festasComStatus = await Promise.all(
-      festas.map(async (festa) => {
+    // OTIMIZAÇÃO: Buscar todos os pagamentos de uma vez
+    const festaIds = festas.map(f => f.id);
+    let pagamentosMap = new Map<number, typeof pagamentos.$inferSelect[]>();
+
+    if (festaIds.length > 0) {
+      const allPagamentos = await database
+        .select()
+        .from(pagamentos)
+        .where(inArray(pagamentos.festaId, festaIds));
+
+      for (const p of allPagamentos) {
+        if (!pagamentosMap.has(p.festaId)) {
+          pagamentosMap.set(p.festaId, []);
+        }
+        pagamentosMap.get(p.festaId)!.push(p);
+      }
+    }
+
+    const festasComStatus = festas.map((festa) => {
         // Buscar pagamentos da festa
-        const pagamentosFesta = await database
-          .select()
-          .from(pagamentos)
-          .where(eq(pagamentos.festaId, festa.id));
+        const pagamentosFesta = pagamentosMap.get(festa.id) || [];
 
         const totalPago = pagamentosFesta.reduce((sum, p) => sum + p.valor, 0);
         const saldo = festa.valorTotal - totalPago;
@@ -78,8 +92,7 @@ export const acompanhamentoRouter = router({
             metodoPagamento: p.metodoPagamento,
           })),
         };
-      })
-    );
+      });
 
     return festasComStatus;
   }),
@@ -114,12 +127,27 @@ export const acompanhamentoRouter = router({
       };
     }
 
-    // Processar cada festa
-    for (const festa of festas) {
-      const pagamentosFesta = await database
+    // OTIMIZAÇÃO: Buscar todos os pagamentos de uma vez
+    const festaIds = festas.map(f => f.id);
+    let pagamentosMap = new Map<number, typeof pagamentos.$inferSelect[]>();
+
+    if (festaIds.length > 0) {
+      const allPagamentos = await database
         .select()
         .from(pagamentos)
-        .where(eq(pagamentos.festaId, festa.id));
+        .where(inArray(pagamentos.festaId, festaIds));
+
+      for (const p of allPagamentos) {
+        if (!pagamentosMap.has(p.festaId)) {
+          pagamentosMap.set(p.festaId, []);
+        }
+        pagamentosMap.get(p.festaId)!.push(p);
+      }
+    }
+
+    // Processar cada festa
+    for (const festa of festas) {
+      const pagamentosFesta = pagamentosMap.get(festa.id) || [];
 
       const totalPago = pagamentosFesta.reduce((sum, p) => sum + p.valor, 0);
       const saldo = festa.valorTotal - totalPago;
