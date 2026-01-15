@@ -8,10 +8,20 @@ import { useMemo, useState } from "react";
 
 export default function Agenda() {
   const { user, loading: authLoading } = useAuth();
-  const { data: festas, isLoading } = trpc.festas.list.useQuery();
   const [mesAtual, setMesAtual] = useState(() => {
     const hoje = new Date();
     return `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}`;
+  });
+
+  const queryInput = useMemo(() => {
+    const [ano, mes] = mesAtual.split("-").map(Number);
+    const startDate = new Date(ano, mes - 1, 1).getTime();
+    const endDate = new Date(ano, mes, 0, 23, 59, 59, 999).getTime();
+    return { startDate, endDate };
+  }, [mesAtual]);
+
+  const { data: festas, isLoading } = trpc.festas.list.useQuery(queryInput, {
+    placeholderData: (prev) => prev,
   });
 
   // Gerar dias do mês
@@ -105,11 +115,7 @@ export default function Agenda() {
                 </button>
               </div>
               <CardDescription>
-                {Object.values(festasPorDia).flat().filter(f => {
-                  const data = new Date(f.dataFesta);
-                  const [ano, mes] = mesAtual.split("-").map(Number);
-                  return data.getFullYear() === ano && data.getMonth() === mes - 1;
-                }).length} festas neste mês
+                {festas?.length || 0} festas neste mês
               </CardDescription>
             </CardHeader>
             <CardContent>
