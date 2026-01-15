@@ -3,9 +3,22 @@ import { protectedProcedure, router } from "../_core/trpc";
 import * as db from "../db";
 
 export const festasRouter = router({
-  list: protectedProcedure.query(async () => {
-    return db.getAllFestas();
-  }),
+  list: protectedProcedure
+    .input(
+      z
+        .object({
+          startDate: z.number().optional(),
+          endDate: z.number().optional(),
+        })
+        .optional()
+    )
+    .query(async ({ input }) => {
+      const startDate = input?.startDate
+        ? new Date(input.startDate)
+        : undefined;
+      const endDate = input?.endDate ? new Date(input.endDate) : undefined;
+      return db.getAllFestas(startDate, endDate);
+    }),
 
   byId: protectedProcedure
     .input(z.object({ id: z.number() }))

@@ -6,8 +6,8 @@ export const APP_LOGO = "https://placehold.co/128x128/FF6B9D/FFFFFF?text=FK";
 
 // Generate login URL at runtime so redirect URI reflects the current origin.
 export const getLoginUrl = () => {
-  const oauthPortalUrl = import.meta.env.VITE_OAUTH_PORTAL_URL;
-  const appId = import.meta.env.VITE_APP_ID;
+  const oauthPortalUrl = import.meta.env.VITE_OAUTH_PORTAL_URL || "http://localhost:9999";
+  const appId = import.meta.env.VITE_APP_ID || "dev-app-id";
   const redirectUri = `${window.location.origin}/api/oauth/callback`;
   const state = btoa(redirectUri);
 

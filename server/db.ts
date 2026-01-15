@@ -199,12 +199,12 @@ export async function getFestaByCodigo(codigo: string) {
   return result[0];
 }
 
-export async function getAllFestas() {
+export async function getAllFestas(startDate?: Date, endDate?: Date) {
   const db = await getDb();
   if (!db) return [];
-  const { desc } = await import("drizzle-orm");
+  const { desc, and, gte, lte } = await import("drizzle-orm");
   
-  const result = await db
+  const baseQuery = db
     .select({
       id: festas.id,
       codigo: festas.codigo,
@@ -223,10 +223,20 @@ export async function getAllFestas() {
       updatedAt: festas.updatedAt,
     })
     .from(festas)
-    .leftJoin(clientes, eq(festas.clienteId, clientes.id))
-    .orderBy(desc(festas.dataFesta));
+    .leftJoin(clientes, eq(festas.clienteId, clientes.id));
+
+  if (startDate && endDate) {
+    return baseQuery
+      .where(
+        and(
+          gte(festas.dataFesta, startDate),
+          lte(festas.dataFesta, endDate)
+        )
+      )
+      .orderBy(desc(festas.dataFesta));
+  }
   
-  return result;
+  return baseQuery.orderBy(desc(festas.dataFesta));
 }
 
 export async function getFestasByStatus(status: "agendada" | "realizada" | "cancelada") {
