@@ -1,18 +1,37 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { trpc } from "@/lib/trpc";
 import { CalendarDays, Loader2 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { keepPreviousData } from "@tanstack/react-query";
 
 export default function Agenda() {
   const { user, loading: authLoading } = useAuth();
-  const { data: festas, isLoading } = trpc.festas.list.useQuery();
   const [mesAtual, setMesAtual] = useState(() => {
     const hoje = new Date();
     return `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}`;
   });
+
+  const dateRange = useMemo(() => {
+    const [ano, mes] = mesAtual.split("-").map(Number);
+    return {
+      startDate: new Date(ano, mes - 1, 1).getTime(),
+      endDate: new Date(ano, mes, 0, 23, 59, 59, 999).getTime(),
+    };
+  }, [mesAtual]);
+
+  const { data: festas, isLoading } = trpc.festas.byDateRange.useQuery(
+    dateRange,
+    { placeholderData: keepPreviousData }
+  );
 
   // Gerar dias do mês
   const diasDoMes = useMemo(() => {
@@ -20,30 +39,30 @@ export default function Agenda() {
     const primeiroDia = new Date(ano, mes - 1, 1);
     const ultimoDia = new Date(ano, mes, 0);
     const dias: Date[] = [];
-    
+
     for (let dia = 1; dia <= ultimoDia.getDate(); dia++) {
       dias.push(new Date(ano, mes - 1, dia));
     }
-    
+
     return dias;
   }, [mesAtual]);
 
   // Agrupar festas por dia
   const festasPorDia = useMemo(() => {
     if (!festas) return {};
-    
+
     const grupos: Record<string, typeof festas> = {};
-    
-    festas.forEach((festa) => {
+
+    festas.forEach(festa => {
       const data = new Date(festa.dataFesta);
       const diaKey = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, "0")}-${String(data.getDate()).padStart(2, "0")}`;
-      
+
       if (!grupos[diaKey]) {
         grupos[diaKey] = [];
       }
       grupos[diaKey].push(festa);
     });
-    
+
     return grupos;
   }, [festas]);
 
@@ -56,7 +75,9 @@ export default function Agenda() {
   const mudarMes = (direcao: number) => {
     const [ano, mes] = mesAtual.split("-").map(Number);
     const novaData = new Date(ano, mes - 1 + direcao, 1);
-    setMesAtual(`${novaData.getFullYear()}-${String(novaData.getMonth() + 1).padStart(2, "0")}`);
+    setMesAtual(
+      `${novaData.getFullYear()}-${String(novaData.getMonth() + 1).padStart(2, "0")}`
+    );
   };
 
   if (authLoading) {
@@ -79,7 +100,9 @@ export default function Agenda() {
             <CalendarDays className="h-8 w-8" />
             Agenda de Festas
           </h1>
-          <p className="text-muted-foreground">Visualize as festas em formato de agenda</p>
+          <p className="text-muted-foreground">
+            Visualize as festas em formato de agenda
+          </p>
         </div>
 
         {isLoading ? (
@@ -96,7 +119,9 @@ export default function Agenda() {
                 >
                   ← Anterior
                 </button>
-                <CardTitle className="capitalize">{formatarMesAno(mesAtual)}</CardTitle>
+                <CardTitle className="capitalize">
+                  {formatarMesAno(mesAtual)}
+                </CardTitle>
                 <button
                   onClick={() => mudarMes(1)}
                   className="px-4 py-2 rounded-lg hover:bg-accent transition-colors"
@@ -105,21 +130,29 @@ export default function Agenda() {
                 </button>
               </div>
               <CardDescription>
-                {Object.values(festasPorDia).flat().filter(f => {
-                  const data = new Date(f.dataFesta);
-                  const [ano, mes] = mesAtual.split("-").map(Number);
-                  return data.getFullYear() === ano && data.getMonth() === mes - 1;
-                }).length} festas neste mês
+                {
+                  Object.values(festasPorDia)
+                    .flat()
+                    .filter(f => {
+                      const data = new Date(f.dataFesta);
+                      const [ano, mes] = mesAtual.split("-").map(Number);
+                      return (
+                        data.getFullYear() === ano &&
+                        data.getMonth() === mes - 1
+                      );
+                    }).length
+                }{" "}
+                festas neste mês
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 gap-2">
-                {diasDoMes.map((dia) => {
+                {diasDoMes.map(dia => {
                   const diaKey = `${dia.getFullYear()}-${String(dia.getMonth() + 1).padStart(2, "0")}-${String(dia.getDate()).padStart(2, "0")}`;
                   const festasNoDia = festasPorDia[diaKey] || [];
                   const hoje = new Date();
                   const ehHoje = dia.toDateString() === hoje.toDateString();
-                  
+
                   return (
                     <div
                       key={diaKey}
@@ -128,25 +161,36 @@ export default function Agenda() {
                       <div className="flex items-start justify-between mb-2">
                         <div>
                           <div className="font-semibold">
-                            {dia.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit" })}
-                            {ehHoje && <Badge className="ml-2" variant="default">Hoje</Badge>}
+                            {dia.toLocaleDateString("pt-BR", {
+                              weekday: "long",
+                              day: "2-digit",
+                            })}
+                            {ehHoje && (
+                              <Badge className="ml-2" variant="default">
+                                Hoje
+                              </Badge>
+                            )}
                           </div>
                           <div className="text-sm text-muted-foreground">
-                            {festasNoDia.length > 0 ? `${festasNoDia.length} ${festasNoDia.length === 1 ? "festa" : "festas"}` : "Sem festas"}
+                            {festasNoDia.length > 0
+                              ? `${festasNoDia.length} ${festasNoDia.length === 1 ? "festa" : "festas"}`
+                              : "Sem festas"}
                           </div>
                         </div>
                       </div>
-                      
+
                       {festasNoDia.length > 0 && (
                         <div className="space-y-2 mt-3">
-                          {festasNoDia.map((festa) => (
+                          {festasNoDia.map(festa => (
                             <div
                               key={festa.id}
                               className="border-l-4 border-primary pl-3 py-2 bg-background rounded-r"
                             >
                               <div className="flex items-center justify-between">
                                 <div>
-                                  <div className="font-medium">{festa.codigo}</div>
+                                  <div className="font-medium">
+                                    {festa.codigo}
+                                  </div>
                                   <div className="text-sm text-muted-foreground">
                                     {festa.clienteNome}
                                   </div>
@@ -163,9 +207,20 @@ export default function Agenda() {
                                 </div>
                                 <div className="text-right">
                                   <div className="font-semibold text-sm">
-                                    R$ {(festa.valorTotal / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                    R${" "}
+                                    {(festa.valorTotal / 100).toLocaleString(
+                                      "pt-BR",
+                                      { minimumFractionDigits: 2 }
+                                    )}
                                   </div>
-                                  <Badge variant={festa.status === "agendada" ? "default" : "secondary"} className="text-xs">
+                                  <Badge
+                                    variant={
+                                      festa.status === "agendada"
+                                        ? "default"
+                                        : "secondary"
+                                    }
+                                    className="text-xs"
+                                  >
                                     {festa.status}
                                   </Badge>
                                 </div>
