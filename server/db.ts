@@ -199,6 +199,41 @@ export async function getFestaByCodigo(codigo: string) {
   return result[0];
 }
 
+export async function getFestaStats() {
+  const db = await getDb();
+  if (!db) {
+    return {
+      total: 0,
+      agendadas: 0,
+      realizadas: 0,
+      valorTotal: 0,
+      valorPago: 0,
+    };
+  }
+  const { sql } = await import("drizzle-orm");
+
+  const result = await (db as any)
+    .select({
+      total: sql<number>`count(*)`,
+      agendadas: sql<number>`coalesce(sum(case when ${festas.status} = 'agendada' then 1 else 0 end), 0)`,
+      realizadas: sql<number>`coalesce(sum(case when ${festas.status} = 'realizada' then 1 else 0 end), 0)`,
+      valorTotal: sql<number>`coalesce(sum(${festas.valorTotal}), 0)`,
+      valorPago: sql<number>`coalesce(sum(${festas.valorPago}), 0)`,
+    })
+    .from(festas);
+
+  // result is typically an array with one object for aggregations without group by
+  const stats = result[0];
+
+  return {
+    total: Number(stats.total),
+    agendadas: Number(stats.agendadas),
+    realizadas: Number(stats.realizadas),
+    valorTotal: Number(stats.valorTotal),
+    valorPago: Number(stats.valorPago),
+  };
+}
+
 export async function getAllFestas() {
   const db = await getDb();
   if (!db) return [];
