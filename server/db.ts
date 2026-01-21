@@ -251,7 +251,26 @@ export async function getFestasByDateRange(startDate: Date, endDate: Date) {
   const db = await getDb();
   if (!db) return [];
   const { and, gte, lte, desc } = await import("drizzle-orm");
-  return db.select().from(festas)
+  return db
+    .select({
+      id: festas.id,
+      codigo: festas.codigo,
+      clienteId: festas.clienteId,
+      clienteNome: clientes.nome,
+      dataFechamento: festas.dataFechamento,
+      dataFesta: festas.dataFesta,
+      valorTotal: festas.valorTotal,
+      valorPago: festas.valorPago,
+      numeroConvidados: festas.numeroConvidados,
+      tema: festas.tema,
+      horario: festas.horario,
+      status: festas.status,
+      observacoes: festas.observacoes,
+      createdAt: festas.createdAt,
+      updatedAt: festas.updatedAt,
+    })
+    .from(festas)
+    .leftJoin(clientes, eq(festas.clienteId, clientes.id))
     .where(
       and(
         gte(festas.dataFesta, startDate),
