@@ -3,16 +3,37 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { trpc } from "@/lib/trpc";
+import { keepPreviousData } from "@tanstack/react-query";
 import { CalendarDays, Loader2 } from "lucide-react";
 import { useMemo, useState } from "react";
 
 export default function Agenda() {
   const { user, loading: authLoading } = useAuth();
-  const { data: festas, isLoading } = trpc.festas.list.useQuery();
+
   const [mesAtual, setMesAtual] = useState(() => {
     const hoje = new Date();
     return `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}`;
   });
+
+  // Calcular datas de início e fim do mês para o filtro
+  const { startDate, endDate } = useMemo(() => {
+    const [ano, mes] = mesAtual.split("-").map(Number);
+    // Primeiro dia do mês
+    const start = new Date(ano, mes - 1, 1);
+    // Último dia do mês
+    const end = new Date(ano, mes, 0, 23, 59, 59, 999);
+
+    return {
+      startDate: start.getTime(),
+      endDate: end.getTime()
+    };
+  }, [mesAtual]);
+
+  // Buscar festas apenas do mês atual
+  const { data: festas, isLoading } = trpc.festas.byDateRange.useQuery(
+    { startDate, endDate },
+    { placeholderData: keepPreviousData }
+  );
 
   // Gerar dias do mês
   const diasDoMes = useMemo(() => {
@@ -105,11 +126,7 @@ export default function Agenda() {
                 </button>
               </div>
               <CardDescription>
-                {Object.values(festasPorDia).flat().filter(f => {
-                  const data = new Date(f.dataFesta);
-                  const [ano, mes] = mesAtual.split("-").map(Number);
-                  return data.getFullYear() === ano && data.getMonth() === mes - 1;
-                }).length} festas neste mês
+                {festas ? festas.length : 0} festas neste mês
               </CardDescription>
             </CardHeader>
             <CardContent>
