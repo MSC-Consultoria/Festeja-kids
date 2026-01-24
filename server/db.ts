@@ -5,8 +5,8 @@ import { drizzle as drizzlePostgres } from "drizzle-orm/postgres-js";
 import mysql from "mysql2/promise";
 import Database from "better-sqlite3";
 import postgres from "postgres";
-import { 
-  InsertUser, 
+import {
+  InsertUser,
   users,
   clientes,
   InsertCliente,
@@ -17,36 +17,41 @@ import {
   custosVariaveis,
   InsertCustoVariavel,
   custosFixos,
-  InsertCustoFixo
+  InsertCustoFixo,
 } from "../drizzle/schema";
-import { ENV } from './_core/env';
+import { ENV } from "./_core/env";
 
-let _db: ReturnType<typeof drizzleMysql> | ReturnType<typeof drizzleSqlite> | ReturnType<typeof drizzlePostgres> | null = null;
+let _db:
+  | ReturnType<typeof drizzleMysql>
+  | ReturnType<typeof drizzleSqlite>
+  | ReturnType<typeof drizzlePostgres>
+  | null = null;
 
 // Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
       const dbUrl = process.env.DATABASE_URL;
-      const isSQLite = dbUrl.startsWith('file:');
-      const isPostgres = dbUrl.startsWith('postgres://') || dbUrl.startsWith('postgresql://');
-      
+      const isSQLite = dbUrl.startsWith("file:");
+      const isPostgres =
+        dbUrl.startsWith("postgres://") || dbUrl.startsWith("postgresql://");
+
       if (isSQLite) {
         // SQLite connection
-        const dbPath = dbUrl.replace('file:', '');
+        const dbPath = dbUrl.replace("file:", "");
         const sqlite = new Database(dbPath);
         _db = drizzleSqlite(sqlite);
-        console.log('[Database] Connected to SQLite:', dbPath);
+        console.log("[Database] Connected to SQLite:", dbPath);
       } else if (isPostgres) {
         // PostgreSQL/Supabase connection
         const connection = postgres(dbUrl);
         _db = drizzlePostgres(connection);
-        console.log('[Database] Connected to PostgreSQL/Supabase');
+        console.log("[Database] Connected to PostgreSQL/Supabase");
       } else {
         // MySQL connection
         const connection = await mysql.createConnection(dbUrl);
         _db = drizzleMysql(connection);
-        console.log('[Database] Connected to MySQL');
+        console.log("[Database] Connected to MySQL");
       }
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
@@ -94,8 +99,8 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       values.role = user.role;
       updateSet.role = user.role;
     } else if (user.openId === ENV.ownerOpenId) {
-      values.role = 'admin';
-      updateSet.role = 'admin';
+      values.role = "admin";
+      updateSet.role = "admin";
     }
 
     if (!values.lastSignedIn) {
@@ -122,7 +127,11 @@ export async function getUserByOpenId(openId: string) {
     return undefined;
   }
 
-  const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
+  const result = await db
+    .select()
+    .from(users)
+    .where(eq(users.openId, openId))
+    .limit(1);
 
   return result.length > 0 ? result[0] : undefined;
 }
@@ -139,7 +148,11 @@ export async function createCliente(cliente: InsertCliente) {
 export async function getClienteById(id: number) {
   const db = await getDb();
   if (!db) return undefined;
-  const result = await db.select().from(clientes).where(eq(clientes.id, id)).limit(1);
+  const result = await db
+    .select()
+    .from(clientes)
+    .where(eq(clientes.id, id))
+    .limit(1);
   return result[0];
 }
 
@@ -165,7 +178,9 @@ export async function searchClientes(searchTerm: string) {
   const db = await getDb();
   if (!db) return [];
   const { or, like } = await import("drizzle-orm");
-  return db.select().from(clientes)
+  return db
+    .select()
+    .from(clientes)
     .where(
       or(
         like(clientes.nome, `%${searchTerm}%`),
@@ -188,14 +203,22 @@ export async function createFesta(festa: InsertFesta) {
 export async function getFestaById(id: number) {
   const db = await getDb();
   if (!db) return undefined;
-  const result = await db.select().from(festas).where(eq(festas.id, id)).limit(1);
+  const result = await db
+    .select()
+    .from(festas)
+    .where(eq(festas.id, id))
+    .limit(1);
   return result[0];
 }
 
 export async function getFestaByCodigo(codigo: string) {
   const db = await getDb();
   if (!db) return undefined;
-  const result = await db.select().from(festas).where(eq(festas.codigo, codigo)).limit(1);
+  const result = await db
+    .select()
+    .from(festas)
+    .where(eq(festas.codigo, codigo))
+    .limit(1);
   return result[0];
 }
 
@@ -203,7 +226,7 @@ export async function getAllFestas() {
   const db = await getDb();
   if (!db) return [];
   const { desc } = await import("drizzle-orm");
-  
+
   const result = await db
     .select({
       id: festas.id,
@@ -225,15 +248,19 @@ export async function getAllFestas() {
     .from(festas)
     .leftJoin(clientes, eq(festas.clienteId, clientes.id))
     .orderBy(desc(festas.dataFesta));
-  
+
   return result;
 }
 
-export async function getFestasByStatus(status: "agendada" | "realizada" | "cancelada") {
+export async function getFestasByStatus(
+  status: "agendada" | "realizada" | "cancelada"
+) {
   const db = await getDb();
   if (!db) return [];
   const { desc } = await import("drizzle-orm");
-  return db.select().from(festas)
+  return db
+    .select()
+    .from(festas)
     .where(eq(festas.status, status))
     .orderBy(desc(festas.dataFesta));
 }
@@ -242,7 +269,9 @@ export async function getFestasByCliente(clienteId: number) {
   const db = await getDb();
   if (!db) return [];
   const { desc } = await import("drizzle-orm");
-  return db.select().from(festas)
+  return db
+    .select()
+    .from(festas)
     .where(eq(festas.clienteId, clienteId))
     .orderBy(desc(festas.dataFesta));
 }
@@ -251,12 +280,11 @@ export async function getFestasByDateRange(startDate: Date, endDate: Date) {
   const db = await getDb();
   if (!db) return [];
   const { and, gte, lte, desc } = await import("drizzle-orm");
-  return db.select().from(festas)
+  return db
+    .select()
+    .from(festas)
     .where(
-      and(
-        gte(festas.dataFesta, startDate),
-        lte(festas.dataFesta, endDate)
-      )
+      and(gte(festas.dataFesta, startDate), lte(festas.dataFesta, endDate))
     )
     .orderBy(desc(festas.dataFesta));
 }
@@ -286,15 +314,16 @@ export async function getAllPagamentos() {
   const db = await getDb();
   if (!db) return [];
   const { desc } = await import("drizzle-orm");
-  return db.select().from(pagamentos)
-    .orderBy(desc(pagamentos.dataPagamento));
+  return db.select().from(pagamentos).orderBy(desc(pagamentos.dataPagamento));
 }
 
 export async function getPagamentosByFesta(festaId: number) {
   const db = await getDb();
   if (!db) return [];
   const { desc } = await import("drizzle-orm");
-  return db.select().from(pagamentos)
+  return db
+    .select()
+    .from(pagamentos)
     .where(eq(pagamentos.festaId, festaId))
     .orderBy(desc(pagamentos.dataPagamento));
 }
@@ -323,12 +352,17 @@ export async function getAllCustosVariaveis() {
 export async function getActiveCustosVariaveis() {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(custosVariaveis)
+  return db
+    .select()
+    .from(custosVariaveis)
     .where(eq(custosVariaveis.ativo, 1))
     .orderBy(custosVariaveis.ordem);
 }
 
-export async function updateCustoVariavel(id: number, data: Partial<InsertCustoVariavel>) {
+export async function updateCustoVariavel(
+  id: number,
+  data: Partial<InsertCustoVariavel>
+) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.update(custosVariaveis).set(data).where(eq(custosVariaveis.id, id));
@@ -358,12 +392,17 @@ export async function getAllCustosFixos() {
 export async function getActiveCustosFixos() {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(custosFixos)
+  return db
+    .select()
+    .from(custosFixos)
     .where(eq(custosFixos.ativo, 1))
     .orderBy(custosFixos.ordem);
 }
 
-export async function updateCustoFixo(id: number, data: Partial<InsertCustoFixo>) {
+export async function updateCustoFixo(
+  id: number,
+  data: Partial<InsertCustoFixo>
+) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.update(custosFixos).set(data).where(eq(custosFixos.id, id));
@@ -380,7 +419,7 @@ export async function deleteCustoFixo(id: number) {
 export async function calcularCustoTotalVariavel(valorFesta: number) {
   const custosAtivos = await getActiveCustosVariaveis();
   let total = 0;
-  
+
   for (const custo of custosAtivos) {
     if (custo.percentual && custo.percentual > 0) {
       // Custo percentual (ex: comissão)
@@ -390,7 +429,7 @@ export async function calcularCustoTotalVariavel(valorFesta: number) {
       total += custo.valor;
     }
   }
-  
+
   return total;
 }
 
@@ -403,10 +442,66 @@ export async function calcularMargemLucro(valorFesta: number) {
   const custoVariavel = await calcularCustoTotalVariavel(valorFesta);
   const margemBruta = valorFesta - custoVariavel;
   const percentualMargem = (margemBruta / valorFesta) * 100;
-  
+
   return {
     custoVariavel,
     margemBruta,
     percentualMargem,
+  };
+}
+
+export async function getFestaStats() {
+  const db = await getDb();
+  if (!db) {
+    return {
+      total: 0,
+      agendadas: 0,
+      realizadas: 0,
+      valorTotal: 0,
+      valorPago: 0,
+      valorAReceber: 0,
+      ticketMedio: 0,
+    };
+  }
+
+  const { sql } = await import("drizzle-orm");
+
+  const result = await ((db as any)
+    .select({
+      total: sql<number>`count(*)`,
+      agendadas: sql<number>`sum(case when ${festas.status} = 'agendada' then 1 else 0 end)`,
+      realizadas: sql<number>`sum(case when ${festas.status} = 'realizada' then 1 else 0 end)`,
+      valorTotal: sql<number>`sum(${festas.valorTotal})`,
+      valorPago: sql<number>`sum(${festas.valorPago})`,
+    })
+    .from(festas) as Promise<
+    {
+      total: unknown;
+      agendadas: unknown;
+      realizadas: unknown;
+      valorTotal: unknown;
+      valorPago: unknown;
+    }[]
+  >);
+
+  const stats = result[0];
+
+  const total = Number(stats.total) || 0;
+  const agendadas = Number(stats.agendadas) || 0;
+  const realizadas = Number(stats.realizadas) || 0;
+  const valorTotal = Number(stats.valorTotal) || 0;
+  const valorPago = Number(stats.valorPago) || 0;
+
+  const valorAReceber = valorTotal - valorPago;
+  const ticketMedio = total > 0 ? valorTotal / total : 0;
+
+  return {
+    total,
+    agendadas,
+    realizadas,
+    valorTotal,
+    valorPago,
+    valorAReceber,
+    ticketMedio,
   };
 }
