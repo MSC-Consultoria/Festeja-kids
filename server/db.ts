@@ -261,6 +261,31 @@ export async function getFestasByDateRange(startDate: Date, endDate: Date) {
     .orderBy(desc(festas.dataFesta));
 }
 
+export async function getFestaStats() {
+  const db = await getDb();
+  if (!db) return undefined;
+  const { sql } = await import("drizzle-orm");
+
+  const result = await (db as any)
+    .select({
+      total: sql<number>`count(*)`,
+      agendadas: sql<number>`sum(case when ${festas.status} = 'agendada' then 1 else 0 end)`,
+      realizadas: sql<number>`sum(case when ${festas.status} = 'realizada' then 1 else 0 end)`,
+      valorTotal: sql<number>`coalesce(sum(${festas.valorTotal}), 0)`,
+      valorPago: sql<number>`coalesce(sum(${festas.valorPago}), 0)`,
+    })
+    .from(festas);
+
+  const row = result[0];
+  return {
+    total: Number(row.total),
+    agendadas: Number(row.agendadas),
+    realizadas: Number(row.realizadas),
+    valorTotal: Number(row.valorTotal),
+    valorPago: Number(row.valorPago),
+  };
+}
+
 export async function updateFesta(id: number, data: Partial<InsertFesta>) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
