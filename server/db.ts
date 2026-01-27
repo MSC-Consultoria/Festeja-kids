@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { drizzle as drizzleMysql } from "drizzle-orm/mysql2";
 import { drizzle as drizzleSqlite } from "drizzle-orm/better-sqlite3";
 import { drizzle as drizzlePostgres } from "drizzle-orm/postgres-js";
@@ -259,6 +259,51 @@ export async function getFestasByDateRange(startDate: Date, endDate: Date) {
       )
     )
     .orderBy(desc(festas.dataFesta));
+}
+
+export async function getFestaStats() {
+  const db = await getDb();
+  if (!db) {
+    return {
+      total: 0,
+      agendadas: 0,
+      realizadas: 0,
+      valorTotal: 0,
+      valorPago: 0,
+      valorAReceber: 0,
+      ticketMedio: 0,
+    };
+  }
+
+  // Use (db as any) to avoid TS union type issues with select
+  const result = await (db as any)
+    .select({
+      total: sql<number>`count(*)`,
+      agendadas: sql<number>`sum(case when ${festas.status} = 'agendada' then 1 else 0 end)`,
+      realizadas: sql<number>`sum(case when ${festas.status} = 'realizada' then 1 else 0 end)`,
+      valorTotal: sql<number>`sum(${festas.valorTotal})`,
+      valorPago: sql<number>`sum(${festas.valorPago})`,
+    })
+    .from(festas);
+
+  const stats = result[0];
+
+  // Handle potential nulls/strings from different drivers
+  const total = Number(stats.total) || 0;
+  const valorTotal = Number(stats.valorTotal) || 0;
+  const valorPago = Number(stats.valorPago) || 0;
+  const agendadas = Number(stats.agendadas) || 0;
+  const realizadas = Number(stats.realizadas) || 0;
+
+  return {
+    total,
+    agendadas,
+    realizadas,
+    valorTotal,
+    valorPago,
+    valorAReceber: valorTotal - valorPago,
+    ticketMedio: total > 0 ? valorTotal / total : 0,
+  };
 }
 
 export async function updateFesta(id: number, data: Partial<InsertFesta>) {
