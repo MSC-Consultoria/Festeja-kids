@@ -158,23 +158,32 @@ export const festasRouter = router({
 
   // Estatísticas
   stats: protectedProcedure.query(async () => {
-    const todasFestas = await db.getAllFestas();
-    const agendadas = todasFestas.filter((f) => f.status === "agendada");
-    const realizadas = todasFestas.filter((f) => f.status === "realizada");
-    
-    const valorTotal = todasFestas.reduce((sum, f) => sum + f.valorTotal, 0);
-    const valorPago = todasFestas.reduce((sum, f) => sum + f.valorPago, 0);
+    const stats = await db.getFestaStats();
+
+    if (!stats) {
+      return {
+        total: 0,
+        agendadas: 0,
+        realizadas: 0,
+        valorTotal: 0,
+        valorPago: 0,
+        valorAReceber: 0,
+        ticketMedio: 0,
+      };
+    }
+
+    const { total, valorTotal, valorPago, agendadas, realizadas } = stats;
     const valorAReceber = valorTotal - valorPago;
     
     // Ticket médio considera todas as festas (agendadas + realizadas) pois são vendas confirmadas
-    const ticketMedio = todasFestas.length > 0
-      ? valorTotal / todasFestas.length
+    const ticketMedio = total > 0
+      ? valorTotal / total
       : 0;
     
     return {
-      total: todasFestas.length,
-      agendadas: agendadas.length,
-      realizadas: realizadas.length,
+      total,
+      agendadas,
+      realizadas,
       valorTotal,
       valorPago,
       valorAReceber,
