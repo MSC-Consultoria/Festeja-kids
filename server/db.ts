@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { drizzle as drizzleMysql } from "drizzle-orm/mysql2";
 import { drizzle as drizzleSqlite } from "drizzle-orm/better-sqlite3";
 import { drizzle as drizzlePostgres } from "drizzle-orm/postgres-js";
@@ -271,6 +271,57 @@ export async function deleteFesta(id: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.delete(festas).where(eq(festas.id, id));
+}
+
+export async function getFestaStats() {
+  const db = await getDb();
+
+  // Default structure
+  const defaultStats = {
+    total: 0,
+    agendadas: 0,
+    realizadas: 0,
+    valorTotal: 0,
+    valorPago: 0,
+    valorAReceber: 0,
+    ticketMedio: 0,
+  };
+
+  if (!db) return defaultStats;
+
+  const result = await (db as any)
+    .select({
+      total: sql<number>`count(*)`,
+      agendadas: sql<number>`sum(case when ${festas.status} = 'agendada' then 1 else 0 end)`,
+      realizadas: sql<number>`sum(case when ${festas.status} = 'realizada' then 1 else 0 end)`,
+      valorTotal: sql<number>`sum(${festas.valorTotal})`,
+      valorPago: sql<number>`sum(${festas.valorPago})`,
+    })
+    .from(festas);
+
+  const stats = result[0];
+
+  if (!stats) return defaultStats;
+
+  const total = Number(stats.total || 0);
+  const agendadas = Number(stats.agendadas || 0);
+  const realizadas = Number(stats.realizadas || 0);
+  const valorTotal = Number(stats.valorTotal || 0);
+  const valorPago = Number(stats.valorPago || 0);
+  const valorAReceber = valorTotal - valorPago;
+
+  // Ticket médio logic matches original: total sum / total count
+  const ticketMedio = total > 0 ? valorTotal / total : 0;
+
+  return {
+    total,
+    agendadas,
+    realizadas,
+    valorTotal,
+    valorPago,
+    valorAReceber,
+    ticketMedio,
+  };
 }
 
 // ============ PAGAMENTOS ============
