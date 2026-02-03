@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { drizzle as drizzleMysql } from "drizzle-orm/mysql2";
 import { drizzle as drizzleSqlite } from "drizzle-orm/better-sqlite3";
 import { drizzle as drizzlePostgres } from "drizzle-orm/postgres-js";
@@ -259,6 +259,36 @@ export async function getFestasByDateRange(startDate: Date, endDate: Date) {
       )
     )
     .orderBy(desc(festas.dataFesta));
+}
+
+export async function getFestaStats() {
+  const db = await getDb();
+  if (!db) return {
+    total: 0,
+    agendadas: 0,
+    realizadas: 0,
+    valorTotal: 0,
+    valorPago: 0
+  };
+
+  const result = await (db as any)
+    .select({
+      total: sql<number>`count(*)`.mapWith(Number),
+      agendadas: sql<number>`sum(case when ${festas.status} = 'agendada' then 1 else 0 end)`.mapWith(Number),
+      realizadas: sql<number>`sum(case when ${festas.status} = 'realizada' then 1 else 0 end)`.mapWith(Number),
+      valorTotal: sql<number>`sum(${festas.valorTotal})`.mapWith(Number),
+      valorPago: sql<number>`sum(${festas.valorPago})`.mapWith(Number),
+    })
+    .from(festas);
+
+  const stats = result[0];
+  return {
+    total: stats.total || 0,
+    agendadas: stats.agendadas || 0,
+    realizadas: stats.realizadas || 0,
+    valorTotal: stats.valorTotal || 0,
+    valorPago: stats.valorPago || 0,
+  };
 }
 
 export async function updateFesta(id: number, data: Partial<InsertFesta>) {
