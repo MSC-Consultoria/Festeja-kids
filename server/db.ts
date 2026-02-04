@@ -410,3 +410,50 @@ export async function calcularMargemLucro(valorFesta: number) {
     percentualMargem,
   };
 }
+
+export async function getFestaStats() {
+  const db = await getDb();
+  if (!db) {
+    return {
+      total: 0,
+      agendadas: 0,
+      realizadas: 0,
+      valorTotal: 0,
+      valorPago: 0,
+      valorAReceber: 0,
+      ticketMedio: 0,
+    };
+  }
+
+  const { sql } = await import("drizzle-orm");
+
+  const [result] = await (db as any)
+    .select({
+      total: sql<number>`count(*)`,
+      agendadas: sql<number>`sum(case when ${festas.status} = 'agendada' then 1 else 0 end)`,
+      realizadas: sql<number>`sum(case when ${festas.status} = 'realizada' then 1 else 0 end)`,
+      valorTotal: sql<number>`sum(${festas.valorTotal})`,
+      valorPago: sql<number>`sum(${festas.valorPago})`,
+    })
+    .from(festas);
+
+  // Handle potential nulls and type coercion
+  const total = Number(result?.total) || 0;
+  const agendadas = Number(result?.agendadas) || 0;
+  const realizadas = Number(result?.realizadas) || 0;
+  const valorTotal = Number(result?.valorTotal) || 0;
+  const valorPago = Number(result?.valorPago) || 0;
+
+  const valorAReceber = valorTotal - valorPago;
+  const ticketMedio = total > 0 ? valorTotal / total : 0;
+
+  return {
+    total,
+    agendadas,
+    realizadas,
+    valorTotal,
+    valorPago,
+    valorAReceber,
+    ticketMedio,
+  };
+}
